@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const connectDB = require('./config/db');
@@ -7,26 +6,27 @@ const router = require('./routes');
 
 const app = express();
 
-// Middleware
+// Set allowed origins for CORS
 const allowedOrigins = [process.env.FRONTEND_URL];
 
-// CORS Configuration
-app.use(cors({
-    origin: function (origin, callback) {
-        console.log("Request Origin:", origin);  // Log incoming request origin for debugging
-        if (allowedOrigins.includes(origin) || !origin) {  // Allow requests with no origin (e.g., mobile apps or curl)
-            callback(null, true);
-        } else {
-            console.error("Blocked by CORS:", origin);  // Log blocked origins for better debugging
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],  // Expanded headers
-    credentials: true  // Allow credentials like cookies
-}));
+// Custom CORS handling for Vercel compatibility
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    console.log("Request Origin:", origin);  // Log incoming request origin
+    if (allowedOrigins.includes(origin) || !origin) {  // Allow if in allowed origins
+        res.header("Access-Control-Allow-Origin", origin);
+    }
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+    res.header("Access-Control-Allow-Credentials", "true");
 
-// Body Parsing and Cookie Parsing Middleware
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200); // Respond OK to preflight requests
+    }
+    next();
+});
+
+// Middleware
 app.use(cookieParser());
 app.use(express.json());
 
